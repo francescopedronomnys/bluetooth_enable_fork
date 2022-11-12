@@ -18,7 +18,6 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 import io.flutter.plugin.common.PluginRegistry.ActivityResultListener;
 import io.flutter.plugin.common.PluginRegistry;
@@ -26,7 +25,6 @@ import io.flutter.plugin.common.PluginRegistry;
 /** FlutterBluePlugin */
 public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, MethodCallHandler, ActivityResultListener, PluginRegistry.RequestPermissionsResultListener {
     private static final String TAG = "BluetoothEnablePlugin";
-    private Registrar registrar;
     private Activity activity;
     private MethodChannel channel;
     private BluetoothManager mBluetoothManager;
@@ -37,7 +35,8 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
     private static final int REQUEST_CODE_SCAN_ACTIVITY = 2777;
 
     /** Plugin registration. */
-    public static void registerWith(Registrar registrar) {
+    @SuppressWarnings("deprecation")
+    public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
         final BluetoothEnablePlugin instance = new BluetoothEnablePlugin(registrar);
         registrar.addActivityResultListener(instance);
         registrar.addRequestPermissionsResultListener(instance);
