@@ -2,6 +2,7 @@ package com.hui.bluetooth_enable;
 
 import android.app.Activity;
 import android.Manifest;
+import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -13,6 +14,7 @@ import androidx.core.app.ActivityCompat;
 
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -23,38 +25,91 @@ import io.flutter.plugin.common.PluginRegistry.ActivityResultListener;
 import io.flutter.plugin.common.PluginRegistry;
 
 /** FlutterBluePlugin */
-public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, MethodCallHandler, ActivityResultListener, PluginRegistry.RequestPermissionsResultListener {
+public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, MethodCallHandler, ActivityResultListener, RequestPermissionsResultListener {
     private static final String TAG = "BluetoothEnablePlugin";
     private Activity activity;
     private MethodChannel channel;
+    private final Object initializationLock = new Object();
+    private static final String NAMESPACE = "bluetooth_enable";
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
+
+    private FlutterPluginBinding pluginBinding;
+    private ActivityPluginBinding activityBinding;
+
     private Result pendingResult;
 
     private static final int REQUEST_ENABLE_BLUETOOTH = 1;
     private static final int REQUEST_CODE_SCAN_ACTIVITY = 2777;
 
-    /** Plugin registration. */
-    @SuppressWarnings("deprecation")
-    public static void registerWith(io.flutter.plugin.common.PluginRegistry.Registrar registrar) {
-        final BluetoothEnablePlugin instance = new BluetoothEnablePlugin(registrar);
-        registrar.addActivityResultListener(instance);
-        registrar.addRequestPermissionsResultListener(instance);
-    }
-
-    BluetoothEnablePlugin(Registrar r) {
-        this.registrar = r;
-        this.activity = r.activity();
-        this.channel = new MethodChannel(registrar.messenger(), "bluetooth_enable");
-        this.mBluetoothManager = (BluetoothManager) r.activity().getSystemService(Context.BLUETOOTH_SERVICE);
-        this.mBluetoothAdapter = mBluetoothManager.getAdapter();
-        channel.setMethodCallHandler(this);
-    }
-
     public BluetoothEnablePlugin() {
         this.onDetachedFromEngine(null);
     }
 
+    /* FlutterPlugin implementation */
+
+    @Override
+    public void onAttachedToEngine(FlutterPluginBinding flutterPluginBinding) {
+
+        pluginBinding = flutterPluginBinding;
+        this.channel = new MethodChannel(pluginBinding.getBinaryMessenger(), "bluetooth_enable");
+
+        setup(pluginBinding.getBinaryMessenger(),
+            (Application) pluginBinding.getApplicationContext());
+
+    }
+
+    @Override
+    public void onDetachedFromEngine(FlutterPluginBinding binding) {
+        this.activity = null;
+        this.channel = null;
+        this.mBluetoothAdapter = null;
+        this.mBluetoothManager = null;
+    }
+
+    /* ActivityAware implementation */
+
+    @Override
+    public void onAttachedToActivity(ActivityPluginBinding binding) {
+        activityBinding = binding;
+        this.initPluginFromPluginBinding(activityBinding);
+    }
+    @Override
+    public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
+        activityBinding = binding;
+        this.initPluginFromPluginBinding(activityBinding);
+    }
+    private void initPluginFromPluginBinding (ActivityPluginBinding activityPluginBinding) {
+        this.activity = activityPluginBinding.getActivity();
+        this.mBluetoothManager = (BluetoothManager) this.activity.getSystemService(Context.BLUETOOTH_SERVICE);
+        this.mBluetoothAdapter = mBluetoothManager.getAdapter();
+
+        activityPluginBinding.addActivityResultListener(this);
+        activityPluginBinding.addRequestPermissionsResultListener(this);
+
+        this.channel.setMethodCallHandler(this);
+    }
+
+    @Override
+    public void onDetachedFromActivityForConfigChanges() {
+        this.releaseResources();
+    }
+    @Override
+    public void onDetachedFromActivity() {
+        this.releaseResources();
+    }
+
+    private void setup(
+        final BinaryMessenger messenger,
+        final Application application) {
+        synchronized (initializationLock) {
+        Log.d(TAG, "setup");
+        // channel = new MethodChannel(messenger, NAMESPACE + "/methods");
+        this.channel.setMethodCallHandler(this);
+        this.mBluetoothManager = (BluetoothManager) application.getSystemService(Context.BLUETOOTH_SERVICE);
+        this.mBluetoothAdapter = mBluetoothManager.getAdapter();
+        }
+    }
 
     @Override
     public void onMethodCall(MethodCall call, Result result) {
@@ -160,53 +215,6 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
         return false;
     }
 
-
-    /* FlutterPlugin implementation */
-
-    @Override
-    public void onAttachedToEngine(FlutterPluginBinding binding) {
-        this.channel = new MethodChannel(binding.getBinaryMessenger(), "bluetooth_enable");
-    }
-
-    @Override
-    public void onDetachedFromEngine(FlutterPluginBinding binding) {
-        this.registrar = null;
-        this.activity = null;
-        this.channel = null;
-        this.mBluetoothAdapter = null;
-        this.mBluetoothManager = null;
-    }
-
-
-    /* ActivityAware implementation */
-
-    @Override
-    public void onAttachedToActivity(ActivityPluginBinding activityPluginBinding) {
-        this.initPluginFromPluginBinding(activityPluginBinding);
-    }
-    @Override
-    public void onReattachedToActivityForConfigChanges(ActivityPluginBinding activityPluginBinding) {
-        this.initPluginFromPluginBinding(activityPluginBinding);
-    }
-    private void initPluginFromPluginBinding (ActivityPluginBinding activityPluginBinding) {
-        this.activity = activityPluginBinding.getActivity();
-        this.mBluetoothManager = (BluetoothManager) this.activity.getSystemService(Context.BLUETOOTH_SERVICE);
-        this.mBluetoothAdapter = mBluetoothManager.getAdapter();
-
-        activityPluginBinding.addActivityResultListener(this);
-        activityPluginBinding.addRequestPermissionsResultListener(this);
-
-        this.channel.setMethodCallHandler(this);
-    }
-
-    @Override
-    public void onDetachedFromActivityForConfigChanges() {
-        this.releaseResources();
-    }
-    @Override
-    public void onDetachedFromActivity() {
-        this.releaseResources();
-    }
     private void releaseResources() {
         this.activity.finish();
     }
