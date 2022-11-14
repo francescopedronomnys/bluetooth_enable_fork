@@ -135,7 +135,8 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
             {
                 try
                 {
-                    BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                    BluetoothManager bluetoothManager = (BluetoothManager) activity.getSystemService(Context.BLUETOOTH_SERVICE);
+                    BluetoothAdapter mBluetoothAdapter = bluetoothManager.getAdapter();
                     if (!mBluetoothAdapter.isEnabled()) {
                         mBluetoothAdapter.disable(); 
                         Thread.sleep(500); //code for dealing with InterruptedException not shown
