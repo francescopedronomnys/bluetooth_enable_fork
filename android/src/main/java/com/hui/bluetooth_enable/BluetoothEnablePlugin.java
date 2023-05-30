@@ -1,30 +1,31 @@
 package com.hui.bluetooth_enable;
 
-import android.app.Activity;
 import android.Manifest;
+import android.app.Activity;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
-import android.content.BroadcastReceiver;
 
 import androidx.core.app.ActivityCompat;
 
+import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
 import io.flutter.plugin.common.BinaryMessenger;
-import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 import io.flutter.plugin.common.PluginRegistry.ActivityResultListener;
-import io.flutter.plugin.common.PluginRegistry;
+import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
 
-/** FlutterBluePlugin */
+/**
+ * FlutterBluePlugin
+ */
 public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, MethodCallHandler, ActivityResultListener, RequestPermissionsResultListener {
     private static final String TAG = "BluetoothEnablePlugin";
     private Activity activity;
@@ -55,7 +56,7 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
         this.channel = new MethodChannel(pluginBinding.getBinaryMessenger(), "bluetooth_enable");
 
         setup(pluginBinding.getBinaryMessenger(),
-            (Application) pluginBinding.getApplicationContext());
+                (Application) pluginBinding.getApplicationContext());
 
     }
 
@@ -74,12 +75,14 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
         activityBinding = binding;
         this.initPluginFromPluginBinding(activityBinding);
     }
+
     @Override
     public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
         activityBinding = binding;
         this.initPluginFromPluginBinding(activityBinding);
     }
-    private void initPluginFromPluginBinding (ActivityPluginBinding activityPluginBinding) {
+
+    private void initPluginFromPluginBinding(ActivityPluginBinding activityPluginBinding) {
         this.activity = activityPluginBinding.getActivity();
         this.mBluetoothManager = (BluetoothManager) this.activity.getSystemService(Context.BLUETOOTH_SERVICE);
         this.mBluetoothAdapter = mBluetoothManager.getAdapter();
@@ -94,26 +97,27 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
     public void onDetachedFromActivityForConfigChanges() {
         this.releaseResources();
     }
+
     @Override
     public void onDetachedFromActivity() {
         this.releaseResources();
     }
 
     private void setup(
-        final BinaryMessenger messenger,
-        final Application application) {
+            final BinaryMessenger messenger,
+            final Application application) {
         synchronized (initializationLock) {
-        Log.d(TAG, "setup");
-        // channel = new MethodChannel(messenger, NAMESPACE + "/methods");
-        this.channel.setMethodCallHandler(this);
-        this.mBluetoothManager = (BluetoothManager) application.getSystemService(Context.BLUETOOTH_SERVICE);
-        this.mBluetoothAdapter = mBluetoothManager.getAdapter();
+            Log.d(TAG, "setup");
+            // channel = new MethodChannel(messenger, NAMESPACE + "/methods");
+            this.channel.setMethodCallHandler(this);
+            this.mBluetoothManager = (BluetoothManager) application.getSystemService(Context.BLUETOOTH_SERVICE);
+            this.mBluetoothAdapter = mBluetoothManager.getAdapter();
         }
     }
 
     @Override
     public void onMethodCall(MethodCall call, Result result) {
-        if(mBluetoothAdapter == null && !"isAvailable".equals(call.method)) {
+        if (mBluetoothAdapter == null && !"isAvailable".equals(call.method)) {
             result.error("bluetooth_unavailable", "the device does not have bluetooth", null);
             return;
         }
@@ -123,35 +127,45 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
                 REQUEST_ENABLE_BLUETOOTH);
 
         switch (call.method) {
-            case "enableBluetooth":
-            {  
+            case "isAvailable": {
+                if (mBluetoothAdapter != null) {
+                    result.success(true);
+                } else {
+                    result.success(false);
+                }
+                break;
+            }
+            case "isEnabled": {
+                if (mBluetoothAdapter.isEnabled()) {
+                    result.success(true);
+                } else {
+                    result.success(false);
+                }
+                break;
+            }
+            case "enableBluetooth": {
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 activity.startActivityForResult(enableBtIntent, REQUEST_ENABLE_BLUETOOTH);
                 Log.d(TAG, "rdddesult: " + result);
                 pendingResult = result;
                 break;
             }
-            case "customEnable":
-            {
-                try
-                {
+            case "customEnable": {
+                try {
                     BluetoothManager bluetoothManager = (BluetoothManager) activity.getSystemService(Context.BLUETOOTH_SERVICE);
                     BluetoothAdapter mBluetoothAdapter = bluetoothManager.getAdapter();
                     if (!mBluetoothAdapter.isEnabled()) {
-                        mBluetoothAdapter.disable(); 
+                        mBluetoothAdapter.disable();
                         Thread.sleep(500); //code for dealing with InterruptedException not shown
-                        mBluetoothAdapter.enable(); 
+                        mBluetoothAdapter.enable();
                     }
-                }
-                catch(InterruptedException e)
-                {
+                } catch (InterruptedException e) {
                     Log.e(TAG, "customEnable", e);
                 }
                 result.success("true");
                 break;
             }
-            default:
-            {
+            default: {
                 result.notImplemented();
                 break;
             }
@@ -167,14 +181,12 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
                 try {
                     if (resultCode == Activity.RESULT_OK) {
                         Log.d(TAG, "onActivityResult: User enabled Bluetooth");
-                        pendingResult.success("true");
+                        pendingResult.success(true);
                     } else {
                         Log.d(TAG, "onActivityResult: User did NOT enabled Bluetooth");
-                        pendingResult.success("false");
+                        pendingResult.success(false);
                     }
-                }
-                catch(IllegalStateException|NullPointerException e)
-                {
+                } catch (IllegalStateException | NullPointerException e) {
                     Log.d(TAG, "onActivityResult REQUEST_ENABLE_BLUETOOTH", e);
                 }
             }
@@ -210,7 +222,7 @@ public class BluetoothEnablePlugin implements FlutterPlugin, ActivityAware, Meth
 
     @Override
     public boolean onRequestPermissionsResult(
-        int requestCode, String[] permissions, int[] grantResults) {
+            int requestCode, String[] permissions, int[] grantResults) {
         Log.d(TAG, "onRequestPermissionsResult, TWO");
 
         return false;

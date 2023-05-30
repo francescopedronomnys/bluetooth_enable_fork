@@ -13,9 +13,9 @@ public class SwiftBluetoothEnablePlugin: NSObject, FlutterPlugin, CBCentralManag
         os_log("central.state is: %@", log: .default, type: .debug, _getStateString(state: lastKnownState));
         
         if (lastKnownState == .poweredOn){
-            flutterResult("true")
+            flutterResult(true)
         } else {
-            flutterResult("false")
+            flutterResult(false)
         }
     }
     
@@ -46,18 +46,31 @@ public class SwiftBluetoothEnablePlugin: NSObject, FlutterPlugin, CBCentralManag
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
       switch (call.method) {
+      case "isAvailable":
+          if (lastKnownState == .unsupported) {
+              result(false)
+          } else {
+              result(true)
+          }
+          break;
+      case "isEnabled":
+          if (lastKnownState == .poweredOn) {
+              result(true)
+          } else {
+              result(false)
+          }
+          break;
       case "enableBluetooth":
           if (lastKnownState == .poweredOn) {
-              result("true")
+              result(true)
           } else {
               centralManager = CBCentralManager(delegate: self, queue: nil)
+              flutterResult = result;
           }
           break;
       default:
           os_log("Unsupported method : %@", log: .default, type: .debug, call.method);
           break;
       }
-      
-      flutterResult = result;
   }
 }

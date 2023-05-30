@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:bluetooth_enable_fork/bluetooth_enable_fork.dart';
+import 'package:flutter/material.dart';
 
 void main() => runApp(MyApp());
 
@@ -18,6 +18,16 @@ class _MyAppState extends StatelessWidget {
     BluetoothEnable.enableBluetooth.then((value) {
       print(value);
     });
+  }
+
+  void checkBtAvailable() {
+    BluetoothEnable.bluetoothAvailable
+        .then((value) => print("Bluetooth available: $value"));
+  }
+
+  void checkBtState() {
+    BluetoothEnable.bluetoothEnabled
+        .then((value) => print("Bluetooth enabled: $value"));
   }
 
   Future<void> customEnableBT(BuildContext context) async {
@@ -75,6 +85,20 @@ class _MyAppState extends StatelessWidget {
                   customEnableBT(context);
                 }),
                 child: Text('Custom request to turn on Bluetooth'),
+              ),
+              SizedBox(height: 10.0),
+              ElevatedButton(
+                onPressed: (() {
+                  checkBtAvailable();
+                }),
+                child: Text('Check bluetooth available'),
+              ),
+              SizedBox(height: 10.0),
+              ElevatedButton(
+                onPressed: (() {
+                  checkBtState();
+                }),
+                child: Text('Check bluetooth state'),
               ),
             ],
           ),

@@ -1,9 +1,20 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class BluetoothEnable {
   static const MethodChannel _channel = const MethodChannel('bluetooth_enable');
+
+  static Future<bool> get bluetoothAvailable async {
+    final bool bluetoothState = await _channel.invokeMethod('isAvailable');
+    return bluetoothState;
+  }
+
+  static Future<bool> get bluetoothEnabled async {
+    final bool bluetoothState = await _channel.invokeMethod('isEnabled');
+    return bluetoothState;
+  }
 
   /// Main method of this package.
   ///
@@ -18,9 +29,8 @@ class BluetoothEnable {
   ///     in the application settings; the method will immediately return false,
   ///     and needs to be called a second time (after user supposedly activated
   ///     Bluetooth).
-  static Future<String> get enableBluetooth async {
-    final String bluetoothState =
-        await _channel.invokeMethod('enableBluetooth');
+  static Future<bool> get enableBluetooth async {
+    final bool bluetoothState = await _channel.invokeMethod('enableBluetooth');
     return bluetoothState;
   }
 
