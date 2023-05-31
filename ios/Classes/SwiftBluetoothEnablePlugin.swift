@@ -6,17 +6,40 @@ import os.log
 public class SwiftBluetoothEnablePlugin: NSObject, FlutterPlugin, CBCentralManagerDelegate {
     var centralManager: CBCentralManager!
     var lastKnownState: CBManagerState!
-    var flutterResult: FlutterResult!
+    var isAvailablePendingResult: FlutterResult?
+    var isEnabledPendingResult: FlutterResult?
+    var enablePendingResult: FlutterResult?
     
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {
         lastKnownState = central.state;
         os_log("central.state is: %@", log: .default, type: .debug, _getStateString(state: lastKnownState));
         
-        if (lastKnownState == .poweredOn){
-            flutterResult(true)
-        } else {
-            flutterResult(false)
+        if let finalPendingResult = enablePendingResult {
+            if (lastKnownState == .poweredOn){
+                finalPendingResult(true)
+            } else {
+                finalPendingResult(false)
+            }
         }
+        enablePendingResult = nil
+        
+        if let finalPendingResult = isAvailablePendingResult {
+            if (lastKnownState == .unsupported){
+                finalPendingResult(false)
+            } else {
+                finalPendingResult(true)
+            }
+        }
+        isAvailablePendingResult = nil
+        
+        if let finalPendingResult = isEnabledPendingResult {
+            if (lastKnownState == .poweredOn){
+                finalPendingResult(true)
+            } else {
+                finalPendingResult(false)
+            }
+        }
+        isEnabledPendingResult = nil
     }
     
     private func _getStateString(state: CBManagerState) -> String {
@@ -50,14 +73,16 @@ public class SwiftBluetoothEnablePlugin: NSObject, FlutterPlugin, CBCentralManag
           if (lastKnownState == .unsupported) {
               result(false)
           } else {
-              result(true)
+              centralManager = CBCentralManager(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: false])
+              isAvailablePendingResult = result;
           }
           break;
       case "isEnabled":
           if (lastKnownState == .poweredOn) {
               result(true)
           } else {
-              result(false)
+              centralManager = CBCentralManager(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: false])
+              isEnabledPendingResult = result;
           }
           break;
       case "enableBluetooth":
@@ -65,7 +90,7 @@ public class SwiftBluetoothEnablePlugin: NSObject, FlutterPlugin, CBCentralManag
               result(true)
           } else {
               centralManager = CBCentralManager(delegate: self, queue: nil)
-              flutterResult = result;
+              enablePendingResult = result;
           }
           break;
       default:
