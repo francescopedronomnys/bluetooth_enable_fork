@@ -1,3 +1,7 @@
+## 0.1.7
+* Updated project to be compatible with Flutter 3.10.0
+* Adds support for for isEnabled and isAvailable methods
+
 ## 0.1.6
 * Bluetooth can be activated on Android 13
 
